@@ -13,7 +13,7 @@ public class CarController : MonoBehaviour {
     public DriveMode driveMode = DriveMode.AllWheels;
     public float maxTorque = 50f;
     public float steerForce = 2f;
-    public float breakingForce;
+    public float brakingForce;
 
     public WheelCollider[] wheelColliders = new WheelCollider[4];
     public Transform[] tireMeshes = new Transform[4];
@@ -38,11 +38,11 @@ public class CarController : MonoBehaviour {
         Acceleration();
         if (Input.GetButton("Fire1"))
         {
-            Breaks(true);
+            Brakes(true);
         }
         else
         {
-            Breaks(false);
+            Brakes(false);
         }
     }
 
@@ -76,26 +76,26 @@ public class CarController : MonoBehaviour {
         }
     }
 
-    void Breaks(bool isBreaking)
+    void Brakes(bool isBreaking)
     {
         if (isBreaking)
         {
             if (driveMode == DriveMode.AllWheels)
             {
-                wheelColliders[0].brakeTorque = breakingForce;
-                wheelColliders[1].brakeTorque = breakingForce;
-                wheelColliders[2].brakeTorque = breakingForce;
-                wheelColliders[3].brakeTorque = breakingForce;
+                wheelColliders[0].brakeTorque = brakingForce;
+                wheelColliders[1].brakeTorque = brakingForce;
+                wheelColliders[2].brakeTorque = brakingForce;
+                wheelColliders[3].brakeTorque = brakingForce;
             }
             else if (driveMode == DriveMode.Rear)
             {
-                wheelColliders[2].brakeTorque = breakingForce;
-                wheelColliders[3].brakeTorque = breakingForce;
+                wheelColliders[2].brakeTorque = brakingForce;
+                wheelColliders[3].brakeTorque = brakingForce;
             }
             else
             {
-                wheelColliders[0].brakeTorque = breakingForce;
-                wheelColliders[1].brakeTorque = breakingForce;
+                wheelColliders[0].brakeTorque = brakingForce;
+                wheelColliders[1].brakeTorque = brakingForce;
             }
         }
         else
