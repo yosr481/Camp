@@ -87,6 +87,8 @@
     <Compile Include="Assets\Cars\Scripts\TakeScreenshot.cs" />
     <Compile Include="Assets\Cars\Standard Assets\Character Controllers\Sources\Scripts\MouseLook.cs" />
     <Compile Include="Assets\Scripts\CarController.cs" />
+    <Compile Include="Assets\Scripts\CarEngine.cs" />
+    <Compile Include="Assets\Scripts\Path.cs" />
     <Compile Include="Assets\Scripts\Turning.cs" />
   </ItemGroup>
   <ItemGroup>
