@@ -18,7 +18,10 @@ public class CarEngine : MonoBehaviour {
     public bool isBraking;
 
     [Header("Sensors")]
-
+    public float sensorLength = 5f;
+    public float frontSensorPos = 2.3f;
+    public float frontSideSensorPos = 0.8f;
+    public float frontSensorAngle = 30f;
 
     [Header("Wheels")]
     public WheelCollider[] wheels = new WheelCollider[4];
@@ -27,6 +30,8 @@ public class CarEngine : MonoBehaviour {
     Transform[] wayPoints;
     List<Transform> nodes;
     int currentNode = 0;
+    bool avoiding = false;
+    float targetSteerAngle = 0f;
 
     Rigidbody rigid;
     // Use this for initialization
@@ -50,6 +55,7 @@ public class CarEngine : MonoBehaviour {
     }
 	
 	void FixedUpdate () {
+        Sensors();
         ApplySteer();
         Drive();
         CheckWaypointDistance();
@@ -58,6 +64,8 @@ public class CarEngine : MonoBehaviour {
 
     void ApplySteer()
     {
+        if (avoiding) return;
+
         Vector3 relativeVector = transform.InverseTransformPoint(nodes[currentNode].position);
         relativeVector /= relativeVector.magnitude;
         currentSteer = wheels[0].steerAngle;
@@ -94,6 +102,91 @@ public class CarEngine : MonoBehaviour {
         {
             wheels[2].brakeTorque = 0;
             wheels[3].brakeTorque = 0;
+        }
+    }
+
+    void Sensors()
+    {
+        RaycastHit hit;
+        Vector3 centerSensorStartPos = transform.position + transform.forward * frontSensorPos;
+        Vector3 rightSensorStartPos = transform.position + transform.forward * frontSensorPos + transform.right * frontSideSensorPos;
+        Vector3 rightAngleSensorDirection = Quaternion.AngleAxis(frontSensorAngle, transform.up) * transform.forward;
+        Vector3 leftSensorStartPos = transform.position + transform.forward * frontSensorPos - transform.right * frontSideSensorPos;
+        Vector3 leftAngleSensorDirection = Quaternion.AngleAxis(-frontSensorAngle, transform.up) * transform.forward;
+        float avoidMultiplier = 0f;
+        avoiding = false;
+
+        //Raycasting right side sensor
+        if (Physics.Raycast(rightSensorStartPos, transform.forward, out hit, sensorLength))
+        {
+            if (!hit.collider.CompareTag("Terrain"))
+            {
+                Debug.DrawLine(rightSensorStartPos, hit.point, Color.red);
+                avoiding = true;
+                avoidMultiplier -= 1f;
+            }
+        }
+
+        //Raycasting right angle side sensor
+        else if (Physics.Raycast(rightSensorStartPos, rightAngleSensorDirection, out hit, sensorLength))
+        {
+            if (!hit.collider.CompareTag("Terrain"))
+            {
+                Debug.DrawLine(rightSensorStartPos, hit.point, Color.red);
+                avoiding = true;
+                avoidMultiplier -= 0.5f;
+            }
+        }
+
+        //Raycasting left side sensor
+        if (Physics.Raycast(leftSensorStartPos, transform.forward, out hit, sensorLength))
+        {
+            if (!hit.collider.CompareTag("Terrain"))
+            {
+                Debug.DrawLine(leftSensorStartPos, hit.point, Color.red);
+                avoiding = true;
+                avoidMultiplier += 1f;
+            }
+        }
+
+        //Raycasting left angle side sensor
+        else if (Physics.Raycast(leftSensorStartPos, leftAngleSensorDirection, out hit, sensorLength))
+        {
+            if (!hit.collider.CompareTag("Terrain"))
+            {
+                Debug.DrawLine(leftSensorStartPos, hit.point, Color.red);
+                avoiding = true;
+                avoidMultiplier += 0.5f;
+            }
+        }
+
+        //Raycasting center sensor
+        if(avoidMultiplier == 0)
+        {
+            if (Physics.Raycast(centerSensorStartPos, transform.forward, out hit, sensorLength))
+            {
+                if (!hit.collider.CompareTag("Terrain"))
+                {
+                    Debug.DrawLine(centerSensorStartPos, hit.point, Color.red);
+                    avoiding = true;
+                    if(hit.normal.x < 0)
+                    {
+                        avoidMultiplier -= 1f;
+                    }
+                    else
+                    {
+                        avoidMultiplier += 1f;
+                    }
+                }
+            }
+        }
+
+        if (avoiding)
+        {
+            currentSteer = wheels[0].steerAngle;
+            float newSteerLocal = maxSteeringAngle * avoidMultiplier;
+            wheels[0].steerAngle = Mathf.Lerp(currentSteer, newSteerLocal, steerDamp * Time.deltaTime);
+            wheels[1].steerAngle = Mathf.Lerp(currentSteer, newSteerLocal, steerDamp * Time.deltaTime);
         }
     }
 
