@@ -14,6 +14,7 @@ public class CarController : MonoBehaviour {
     public float maxTorque = 50f;
     public float steerForce = 2f;
     public float brakingForce;
+    public float currentSpeed = 0f;
 
     public WheelCollider[] wheelColliders = new WheelCollider[4];
     public Transform[] tireMeshes = new Transform[4];
@@ -56,6 +57,8 @@ public class CarController : MonoBehaviour {
 
     void Acceleration()
     {
+        currentSpeed = 2 * Mathf.PI * wheelColliders[0].radius * wheelColliders[0].rpm * 60 / 1000;
+
         float acceleration = maxTorque * Input.GetAxis("Vertical");
         if(driveMode == DriveMode.AllWheels)
         {

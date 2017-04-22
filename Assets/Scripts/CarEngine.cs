@@ -7,7 +7,14 @@ public class CarEngine : MonoBehaviour {
     public Transform centerOfMass;
     public Transform pathHolder;
 
+    public enum DrivingMode
+    {
+        FrontWheels,
+        RearWheels,
+        AllWheels
+    }
     [Header("Steering & Driving")]
+    public DrivingMode drivingMode = DrivingMode.AllWheels;
     public float maxSteeringAngle = 45f;
     public float maxMotorTorque = 80f;
     public float maxBrakeTorque = 150f;
@@ -20,12 +27,17 @@ public class CarEngine : MonoBehaviour {
 
     [Header("Sensors")]
     public float sensorLength = 5f;
+    public float centerSensorLength = 15f;
     public float frontSensorPos = 2.3f;
     public float frontSideSensorPos = 0.8f;
     public float frontSensorAngle = 30f;
     public float wideFrontSensorAngle = 90f;
-    public WaitForSeconds drivingBack = new WaitForSeconds(5f);
-    public WaitForSeconds braking = new WaitForSeconds(2.5f);
+    public bool isRightAvailable = true;
+    public bool isLeftAvailable = true;
+    public bool isWideRightAvailable = true;
+    public bool isWideLeftAvailable = true;
+    WaitForSeconds drivingBack = new WaitForSeconds(5f);
+    WaitForSeconds braking = new WaitForSeconds(2.5f);
 
     [Header("Wheels")]
     public WheelCollider[] wheels = new WheelCollider[4];
@@ -81,13 +93,66 @@ public class CarEngine : MonoBehaviour {
 
         if(currentSpeed < maxSpeed && !isBraking && !isDrivingBack)
         {
-            wheels[0].motorTorque = maxMotorTorque;
-            wheels[1].motorTorque = maxMotorTorque;
+            if (drivingMode == DrivingMode.AllWheels)
+            {
+                wheels[0].motorTorque = maxMotorTorque;
+                wheels[1].motorTorque = maxMotorTorque;
+                wheels[2].motorTorque = maxMotorTorque;
+                wheels[3].motorTorque = maxMotorTorque;
+            }
+            else if(drivingMode == DrivingMode.FrontWheels)
+            {
+                wheels[0].motorTorque = maxMotorTorque;
+                wheels[1].motorTorque = maxMotorTorque;
+            }
+            else
+            {
+                wheels[2].motorTorque = maxMotorTorque;
+                wheels[3].motorTorque = maxMotorTorque;
+            }
         }
         else
         {
-            wheels[0].motorTorque = 0;
-            wheels[1].motorTorque = 0;
+            if(drivingMode == DrivingMode.AllWheels)
+            {
+                wheels[0].motorTorque = 0;
+                wheels[1].motorTorque = 0;
+                wheels[2].motorTorque = 0;
+                wheels[3].motorTorque = 0;
+            }
+            else if(drivingMode == DrivingMode.FrontWheels)
+            {
+                wheels[0].motorTorque = 0;
+                wheels[1].motorTorque = 0;
+            }
+            else
+            {
+                wheels[2].motorTorque = 0;
+                wheels[3].motorTorque = 0;
+            }
+        }
+
+        if (isDrivingBack)
+        {
+            if (drivingMode == DrivingMode.AllWheels)
+            {
+                wheels[0].motorTorque = -maxMotorTorque;
+                wheels[1].motorTorque = -maxMotorTorque;
+                wheels[2].motorTorque = -maxMotorTorque;
+                wheels[3].motorTorque = -maxMotorTorque;
+            }
+            else if (drivingMode == DrivingMode.FrontWheels)
+            {
+                wheels[0].motorTorque = -maxMotorTorque;
+                wheels[1].motorTorque = -maxMotorTorque;
+            }
+            else
+            {
+                wheels[2].motorTorque = -maxMotorTorque;
+                wheels[3].motorTorque = -maxMotorTorque;
+            }
+            wheels[0].steerAngle = Mathf.Lerp(currentSteer, 0f, steerDamp * Time.deltaTime);
+            wheels[1].steerAngle = Mathf.Lerp(currentSteer, 0f, steerDamp * Time.deltaTime);
         }
     }
 
@@ -104,8 +169,6 @@ public class CarEngine : MonoBehaviour {
         if (!isBraking)
         {
             isDrivingBack = true;
-            wheels[0].motorTorque = -maxMotorTorque;
-            wheels[1].motorTorque = -maxMotorTorque;
         }
 
         yield return drivingBack;
@@ -139,6 +202,11 @@ public class CarEngine : MonoBehaviour {
         Vector3 wideLeftAngleSensorDirection = Quaternion.AngleAxis(-wideFrontSensorAngle, transform.up) * transform.forward;
         float avoidMultiplier = 0f;
         avoiding = false;
+        isBraking = false;
+        isLeftAvailable = true;
+        isRightAvailable = true;
+        isWideLeftAvailable = true;
+        isWideRightAvailable = true;
 
         //Raycasting right side sensor
         if (Physics.Raycast(rightSensorStartPos, transform.forward, out hit, sensorLength))
@@ -147,7 +215,12 @@ public class CarEngine : MonoBehaviour {
             {
                 Debug.DrawLine(rightSensorStartPos, hit.point, Color.red);
                 avoiding = true;
+                isRightAvailable = false;
                 avoidMultiplier -= 1f;
+            }
+            else if (hit.collider.CompareTag("Car"))
+            {
+                isBraking = true;
             }
         }
 
@@ -158,7 +231,12 @@ public class CarEngine : MonoBehaviour {
             {
                 Debug.DrawLine(rightSensorStartPos, hit.point, Color.red);
                 avoiding = true;
+                isRightAvailable = false;
                 avoidMultiplier -= 0.5f;
+            }
+            else if (hit.collider.CompareTag("Car"))
+            {
+                isBraking = true;
             }
         }
 
@@ -169,7 +247,12 @@ public class CarEngine : MonoBehaviour {
             {
                 Debug.DrawLine(rightSensorStartPos, hit.point, Color.red);
                 avoiding = true;
+                isWideRightAvailable = false;
                 avoidMultiplier -= 0.25f;
+            }
+            else if (hit.collider.CompareTag("Car"))
+            {
+                isBraking = true;
             }
         }
 
@@ -180,7 +263,12 @@ public class CarEngine : MonoBehaviour {
             {
                 Debug.DrawLine(leftSensorStartPos, hit.point, Color.red);
                 avoiding = true;
+                isLeftAvailable = false;
                 avoidMultiplier += 1f;
+            }
+            else if (hit.collider.CompareTag("Car"))
+            {
+                isBraking = true;
             }
         }
 
@@ -191,7 +279,12 @@ public class CarEngine : MonoBehaviour {
             {
                 Debug.DrawLine(leftSensorStartPos, hit.point, Color.red);
                 avoiding = true;
+                isLeftAvailable = false;
                 avoidMultiplier += 0.5f;
+            }
+            else if (hit.collider.CompareTag("Car"))
+            {
+                isBraking = true;
             }
         }
 
@@ -202,14 +295,19 @@ public class CarEngine : MonoBehaviour {
             {
                 Debug.DrawLine(leftSensorStartPos, hit.point, Color.red);
                 avoiding = true;
+                isWideRightAvailable = false;
                 avoidMultiplier += 0.25f;
+            }
+            else if (hit.collider.CompareTag("Car"))
+            {
+                isBraking = true;
             }
         }
 
         //Raycasting center sensor
         if (avoidMultiplier == 0)
         {
-            if (Physics.Raycast(centerSensorStartPos, transform.forward, out hit, sensorLength + 2f))
+            if (Physics.Raycast(centerSensorStartPos, transform.forward, out hit, centerSensorLength))
             {
                 if (!hit.collider.CompareTag("Terrain"))
                 {
@@ -217,17 +315,21 @@ public class CarEngine : MonoBehaviour {
                     avoiding = true;
                     if(hit.normal.x < 0)
                     {
-                        avoidMultiplier -= 1f;
+                        avoidMultiplier += 1f;
                     }
                     else if (hit.normal.x > 0)
                     {
-                        avoidMultiplier += 1f;
+                        avoidMultiplier -= 1f;
                     }
                     else
                     {
-                        StartCoroutine(DriveBackwords());
-                        avoidMultiplier += 1f;
+                        //StartCoroutine(DriveBackwords());
+                        avoidMultiplier += CheckAvailableSensors();
                     }
+                }
+                else if (hit.collider.CompareTag("Car"))
+                {
+                    isBraking = true;
                 }
             }
         }
@@ -235,11 +337,33 @@ public class CarEngine : MonoBehaviour {
         if (avoiding)
         {
             currentSteer = wheels[0].steerAngle;
-            float localSteerDamp = .5f;
             float newSteerLocal = maxSteeringAngle * avoidMultiplier;
             wheels[0].steerAngle = Mathf.Lerp(currentSteer, newSteerLocal, steerDamp * Time.deltaTime);
             wheels[1].steerAngle = Mathf.Lerp(currentSteer, newSteerLocal, steerDamp * Time.deltaTime);
         }
+    }
+
+    float CheckAvailableSensors()
+    {
+        if (isWideLeftAvailable)
+        {
+            return -1f;
+        }
+        else if (isLeftAvailable)
+        {
+            return -0.5f;
+        }
+
+        if (isWideRightAvailable)
+        {
+            return 1f;
+        }
+        else if (isRightAvailable)
+        {
+            return 0.5f;
+        }
+
+        return Random.value;
     }
 
     void UpdateMeshesPositions()
